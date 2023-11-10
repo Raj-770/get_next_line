@@ -1,115 +1,98 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   get_next_line.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: rpambhar <rpambhar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/11/10 13:10:04 by rpambhar          #+#    #+#             */
+/*   Updated: 2023/11/10 13:10:06 by rpambhar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "get_next_line.h"
-
-// join and free
-char	*ft_free(char *buffer, char *buf)
-{
-	char	*temp;
-
-	temp = ft_strjoin(buffer, buf);
-	free(buffer);
-	return (temp);
-}
-
-// delete line find
-char	*ft_next(char *buffer)
-{
-	int		i;
-	int		j;
-	char	*line;
-
-	i = 0;
-	// find len of first line
-	while (buffer[i] && buffer[i] != '\n')
-		i++;
-	// if eol == \0 return NULL
-	if (!buffer[i])
-	{
-		free(buffer);
-		return (NULL);
-	}
-	// len of file - len of firstline + 1
-	line = ft_calloc((ft_strlen(buffer) - i + 1), sizeof(char));
-	i++;
-	j = 0;
-	// line == buffer
-	while (buffer[i])
-		line[j++] = buffer[i++];
-	free(buffer);
-	return (line);
-}
-
-// take line for return
-char	*ft_line(char *buffer)
-{
-	char	*line;
-	int		i;
-
-	i = 0;
-	// if no line return NULL
-	if (!buffer[i])
-		return (NULL);
-	// go to the eol
-	while (buffer[i] && buffer[i] != '\n')
-		i++;
-	// malloc to eol
-	line = ft_calloc(i + 2, sizeof(char));
-	i = 0;
-	// line = buffer
-	while (buffer[i] && buffer[i] != '\n')
-	{
-		line[i] = buffer[i];
-		i++;
-	}
-	// if eol is \0 or \n, replace eol by \n
-	if (buffer[i] && buffer[i] == '\n')
-		line[i++] = '\n';
-	return (line);
-}
-
-char	*read_file(int fd, char *res)
-{
-	char	*buffer;
-	int		byte_read;
-
-	// malloc if res dont exist
-	if (!res)
-		res = ft_calloc(1, 1);
-	// malloc buffer
-	buffer = ft_calloc(BUFFER_SIZE + 1, sizeof(char));
-	byte_read = 1;
-	while (byte_read > 0)
-	{
-		// while not eof read
-		byte_read = read(fd, buffer, BUFFER_SIZE);
-		if (byte_read == -1)
-		{
-			free(buffer);
-			return (NULL);
-		}
-		// 0 to end for leak
-		buffer[byte_read] = 0;
-		// join and free
-		res = ft_free(res, buffer);
-		// quit if \n find
-		if (ft_strchr(buffer, '\n'))
-			break ;
-	}
-	free(buffer);
-	return (res);
-}
 
 char	*get_next_line(int fd)
 {
-	static char	*buffer;
+	static char	*stash;
 	char		*line;
 
-	// error handling
-	if (fd < 0 || BUFFER_SIZE <= 0 || read(fd, 0, 0) < 0)
+	if (fd < 0 || BUFFER_SIZE <= 0)
 		return (NULL);
-	buffer = read_file(fd, buffer);
-	if (!buffer)
+	stash = ft_read(fd, stash);
+	if (!stash)
 		return (NULL);
-	line = ft_line(buffer);
-	buffer = ft_next(buffer);
+	line = ft_get_line(stash);
+	if (line[0] == '\0')
+	{
+		free(stash);
+		stash = NULL;
+		return (free(line), NULL);
+	}
+	stash = ft_update_stash(stash);
 	return (line);
+}
+
+char	*ft_read(int fd, char *stash)
+{
+	int		bytes_read;
+	char	temp[BUFFER_SIZE + 1];
+
+	bytes_read = 1;
+	ft_bzero(&temp, BUFFER_SIZE + 1);
+	while (bytes_read > 0 && !ft_strchr(temp, '\n'))
+	{
+		bytes_read = read(fd, temp, BUFFER_SIZE);
+		if (bytes_read < 0)
+			return (free(stash), NULL);
+		temp[bytes_read] = '\0';
+		stash = ft_strjoin(stash, temp);
+	}
+	return (stash);
+}
+
+char	*ft_get_line(char *stash)
+{
+	char	*line;
+	int		i;
+	int		j;
+
+	i = 0;
+	j = 0;
+	if (!stash)
+		return (NULL);
+	while (stash[j] && stash[j] != '\n')
+		j++;
+	if (stash[j] == '\n')
+		j++;
+	line = ft_calloc(j + 1, sizeof(char));
+	while (stash && stash[i] && stash[i] != '\n')
+	{
+		line[i] = stash[i];
+		i++;
+	}
+	if (stash[i] == '\n')
+		line[i++] = '\n';
+	line[i] = '\0';
+	return (line);
+}
+
+char	*ft_update_stash(char *stash)
+{
+	int		i;
+	int		j;
+	char	*temp;
+
+	i = 0;
+	j = 0;
+	while (stash[i] && stash[i] != '\n')
+		i++;
+	if (!stash[i])
+		return (free(stash), NULL);
+	temp = ft_calloc((ft_strlen(stash) - i) + 1, sizeof(char));
+	i++;
+	while (stash[i])
+		temp[j++] = stash[i++];
+	temp[j] = '\0';
+	return (free(stash), temp);
 }
