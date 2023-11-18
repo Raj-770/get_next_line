@@ -1,35 +1,36 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   get_next_line.c                                    :+:      :+:    :+:   */
+/*   get_next_line_bonus.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: rpambhar <rpambhar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/22 16:59:02 by rpambhar          #+#    #+#             */
-/*   Updated: 2023/11/17 14:22:57 by rpambhar         ###   ########.fr       */
+/*   Updated: 2023/11/17 15:06:01 by rpambhar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
+#include "get_next_line_bonus.h"
 
 #include "get_next_line.h"
 
 char	*get_next_line(int fd)
 {
-	static char	*stash;
+	static char	*stash[FOPEN_MAX];
 	char		*line;
 
 	if (fd < 0 || BUFFER_SIZE <= 0)
 		return (NULL);
-	stash = ft_read(fd, stash);
-	if (!stash)
+	stash[fd] = ft_read(fd, stash[fd]);
+	if (!stash[fd])
 		return (NULL);
-	line = ft_get_line(stash);
+	line = ft_get_line(stash[fd]);
 	if (line[0] == '\0')
 	{
-		free(stash);
-		stash = NULL;
+		stash[fd] = ft_update_stash(stash[fd]);
 		return (free(line), NULL);
 	}
-	stash = ft_update_stash(stash);
+	stash[fd] = ft_update_stash(stash[fd]);
 	return (line);
 }
 
@@ -87,13 +88,15 @@ char	*ft_update_stash(char *stash)
 
 	i = 0;
 	j = 0;
+	if (!stash)
+		return (NULL);
 	while (stash[i] && stash[i] != '\n')
 		i++;
 	if (!stash[i])
 		return (free(stash), NULL);
 	temp = ft_calloc((ft_strlen(stash) - i) + 1, sizeof(char));
 	if (!temp)
-		return (NULL);
+		return (free(stash), NULL);
 	i++;
 	while (stash[i])
 		temp[j++] = stash[i++];
