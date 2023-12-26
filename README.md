@@ -1,5 +1,3 @@
-Certainly! Writing a README.md file is an essential part of any GitHub repository. Below is a template you can use for your Get Next Line project:
-
 # Get Next Line
 
 ## Description
